@@ -1,28 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 import { Plus, Minus, Info, Sun, Moon, Star, Globe } from 'lucide-react';
+import { CustomTooltip} from './components/CustomTooltip'
 
-// Custom Tooltip component
-const CustomTooltip = ({ children, content }) => {
-  const [isVisible, setIsVisible] = useState(false);
-  
-  return (
-    <div className="relative inline-block">
-      <div 
-        className="inline-flex items-center cursor-help"
-        onMouseEnter={() => setIsVisible(true)}
-        onMouseLeave={() => setIsVisible(false)}
-      >
-        {children}
-      </div>
-      {isVisible && (
-        <div className="absolute z-10 px-3 py-2 text-sm w-48 rounded shadow-lg bg-gray-800 text-white -top-1 left-6">
-          {content}
-        </div>
-      )}
-    </div>
-  );
-};
 
 // Country code to currency mapping
 const countryToCurrency = {
@@ -458,7 +438,7 @@ const scheduleData = useMemo(() => {
 
         {/* Footer */}
         <footer className="mt-8 text-center text-sm text-gray-500 dark:text-gray-400">
-          Made with <span className="text-red-500">&hearts;</span> by Suharsh Tyagi
+          Made with <span className="text-red-500">&hearts;</span> by <a href="https://www.github.com/SuharshTyagii">Suharsh Tyagi</a>
         </footer>
       </div>
     </div>

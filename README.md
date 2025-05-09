@@ -4,7 +4,7 @@
 
 A powerful, interactive tool to visualize how prepayments can transform your loan journey and save significant interest costs over time.
 
-![Loan Prepayment Simulator Screenshot](https://via.placeholder.com/800x450)
+![Loan Prepayment Simulator Screenshot](app.png)
 
 ## ✨ Features
 

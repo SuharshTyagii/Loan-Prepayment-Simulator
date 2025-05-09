@@ -65,7 +65,7 @@ export default function LoanCalculator() {
   const [freq, setFreq] = useState('monthly');
   const [currency, setCurrency] = useState('INR');
   const [darkMode, setDarkMode] = useState(false);
-  const [showTable, setShowTable] = useState(false);
+  const [showTable, setShowTable] = useState(true);
   const [isDetectingLocation, setIsDetectingLocation] = useState(false);
   const [locationDetected, setLocationDetected] = useState(false);
 

@@ -1,6 +1,26 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import { Plus, Minus, Info, Sun, Moon, Star } from 'lucide-react';
+import { Plus, Minus, Info, Sun, Moon, Star, Globe } from 'lucide-react';
+
+// Country code to currency mapping
+const countryToCurrency = {
+  'US': 'USD', 'CA': 'CAD', 'GB': 'GBP', 'AU': 'AUD', 'NZ': 'NZD', 
+  'IN': 'INR', 'JP': 'JPY', 'CN': 'CNY', 'HK': 'HKD', 'SG': 'SGD', 
+  'CH': 'CHF', 'KR': 'KRW', 'SE': 'SEK', 'NO': 'NOK', 'MX': 'MXN',
+  'BR': 'BRL', 'ZA': 'ZAR', 'RU': 'RUB', 'TR': 'TRY', 'ID': 'IDR',
+  'MY': 'MYR', 'TH': 'THB', 'PH': 'PHP', 'VN': 'VND', 'PK': 'PKR',
+  'AE': 'AED', 'SA': 'SAR', 'EG': 'EGP'
+};
+
+// Default to EUR for European countries not specifically listed
+const europeanCountries = [
+  'AT', 'BE', 'CY', 'EE', 'FI', 'FR', 'DE', 'GR', 'IE', 'IT',
+  'LV', 'LT', 'LU', 'MT', 'NL', 'PT', 'SK', 'SI', 'ES'
+];
+
+europeanCountries.forEach(country => {
+  countryToCurrency[country] = 'EUR';
+});
 
 // 30 common currencies with flag emojis
 const currencies = [
@@ -45,7 +65,9 @@ export default function LoanCalculator() {
   const [freq, setFreq] = useState('monthly');
   const [currency, setCurrency] = useState('INR');
   const [darkMode, setDarkMode] = useState(false);
-  const [showTable, setShowTable] = useState(true);
+  const [showTable, setShowTable] = useState(false);
+  const [isDetectingLocation, setIsDetectingLocation] = useState(false);
+  const [locationDetected, setLocationDetected] = useState(false);
 
   // Apply system dark mode preference
   useEffect(() => {
@@ -55,6 +77,69 @@ export default function LoanCalculator() {
     mq.addEventListener('change', handler);
     return () => mq.removeEventListener('change', handler);
   }, []);
+  
+  // Detect currency based on location
+  useEffect(() => {
+    // Skip if already detected or currently detecting
+    if (locationDetected || isDetectingLocation) return;
+    
+    const detectCurrency = async () => {
+      try {
+        setIsDetectingLocation(true);
+        const data = await detectLocationWithFallback();
+        
+        if (data.status === 'success' && data.countryCode) {
+          // Find the appropriate currency for this country
+          let detectedCurrency = countryToCurrency[data.countryCode];
+          
+          // If we have a mapping for this country
+          if (detectedCurrency) {
+            setCurrency(detectedCurrency);
+            
+            // Adjust default values based on currency
+            if (detectedCurrency !== 'INR') {
+              // Convert from INR to the appropriate magnitude for the detected currency
+              const conversionFactors = {
+                'USD': 0.012, 'EUR': 0.011, 'GBP': 0.0094, 'JPY': 1.8,
+                'AUD': 0.018, 'CAD': 0.016, 'CHF': 0.010, 'CNY': 0.086, 
+                'HKD': 0.094, 'SGD': 0.016, 'NZD': 0.019, 'KRW': 16.0,
+                'SEK': 0.12, 'NOK': 0.13, 'MXN': 0.20, 'BRL': 0.060,
+                'ZAR': 0.22, 'RUB': 1.1, 'TRY': 0.39,
+                'DEFAULT': 0.012 // Default factor if specific one not found
+              };
+              
+              const factor = conversionFactors[detectedCurrency] || conversionFactors.DEFAULT;
+              
+              // Adjust the values based on currency to more reasonable amounts
+              if (detectedCurrency === 'JPY' || detectedCurrency === 'KRW') {
+                // For high-value currencies, round to nearest whole number
+                setOriginal(Math.round(2945000 * factor));
+                setRemaining(Math.round(2945000 * factor));
+                setEmi(Math.round(33600 * factor));
+              } else {
+                // For others, use appropriate decimal places
+                const roundFactor = detectedCurrency === 'USD' || detectedCurrency === 'EUR' || 
+                                   detectedCurrency === 'GBP' ? 1000 : 100;
+                
+                // Round to nearest appropriate value
+                setOriginal(Math.round(2945000 * factor / roundFactor) * roundFactor);
+                setRemaining(Math.round(2945000 * factor / roundFactor) * roundFactor);
+                setEmi(Math.round(33600 * factor / 10) * 10);
+              }
+            }
+          }
+        }
+        
+        setLocationDetected(true);
+      } catch (error) {
+        console.error('Error detecting location:', error);
+      } finally {
+        setIsDetectingLocation(false);
+      }
+    };
+    
+    detectCurrency();
+  }, [locationDetected, isDetectingLocation]);
 
   // Toggle dark mode class on document
   useEffect(() => {
@@ -64,6 +149,56 @@ export default function LoanCalculator() {
       document.documentElement.classList.remove('dark');
     }
   }, [darkMode]);
+  
+  // Handle CORS issues with a fallback
+  const detectLocationWithFallback = async () => {
+    try {
+      // First try with the direct API
+      setIsDetectingLocation(true);
+      
+      // Try the direct API call with a short timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
+      
+      const response = await fetch('http://ip-api.com/json/?fields=61439', {
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) throw new Error('Direct API failed');
+      
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.log('Direct API failed, trying JSONP fallback...');
+      
+      // Fallback to JSONP approach
+      return new Promise((resolve) => {
+        const script = document.createElement('script');
+        const callbackName = 'ipCallback_' + Math.floor(Math.random() * 10000);
+        
+        // Create global callback function
+        window[callbackName] = (data) => {
+          document.head.removeChild(script);
+          delete window[callbackName];
+          resolve(data);
+        };
+        
+        script.src = `https://ip-api.com/json/?callback=${callbackName}&fields=61439`;
+        document.head.appendChild(script);
+        
+        // Set timeout for JSONP
+        setTimeout(() => {
+          if (window[callbackName]) {
+            document.head.removeChild(script);
+            delete window[callbackName];
+            resolve({ status: 'fail', message: 'JSONP timeout' });
+          }
+        }, 5000);
+      });
+    }
+  };
 
   // Payment frequency mapping
   const freqMap = { weekly: 52, biweekly: 26, monthly: 12, '6-months': 2, yearly: 1 };
@@ -125,15 +260,35 @@ export default function LoanCalculator() {
             <Star className="w-5 h-5 mr-1" /> Star on GitHub
           </a>
           <div className="flex flex-wrap items-center gap-4">
-            <div className="w-full sm:w-auto">
+            <div className="w-full sm:w-auto relative">
               <label className="block text-sm mb-1">Currency</label>
-              <select 
-                className={`p-2 border rounded-lg w-full sm:w-auto ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-300'}`} 
-                value={currency} 
-                onChange={e => setCurrency(e.target.value)}
-              >
-                {currencies.map(c => <option key={c.code} value={c.code}>{c.flag} {c.code}</option>)}
-              </select>
+              <div className="flex">
+                <select 
+                  className={`p-2 border rounded-lg w-full sm:w-auto ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-300'}`} 
+                  value={currency} 
+                  onChange={e => setCurrency(e.target.value)}
+                >
+                  {currencies.map(c => <option key={c.code} value={c.code}>{c.flag} {c.code}</option>)}
+                </select>
+                <button 
+                  onClick={() => {
+                    setLocationDetected(false);
+                    setIsDetectingLocation(false);
+                  }}
+                  disabled={isDetectingLocation}
+                  className={`ml-1 p-2 rounded-lg transition-colors ${
+                    darkMode ? 'bg-blue-800 hover:bg-blue-700' : 'bg-blue-100 hover:bg-blue-200'
+                  } ${isDetectingLocation ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  title="Auto-detect currency based on your location"
+                >
+                  <Globe className="w-4 h-4" />
+                </button>
+              </div>
+              {isDetectingLocation && (
+                <div className={`text-xs mt-1 ${darkMode ? 'text-blue-400' : 'text-blue-600'}`}>
+                  Detecting location...
+                </div>
+              )}
             </div>
             <button 
               onClick={() => setDarkMode(!darkMode)} 
@@ -147,7 +302,7 @@ export default function LoanCalculator() {
 
         {/* Main Card */}
         <div className={`p-6 shadow-lg rounded-2xl transition-colors ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
-          <h2 className="text-2xl font-bold mb-6 text-center">Loan Prepayment Simulator</h2>
+          <h2 className="text-2xl font-bold mb-6 text-center">Loan Payoff Simulator</h2>
 
           {/* Input Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -269,7 +424,6 @@ export default function LoanCalculator() {
               <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">{fmt(prepayment)} every {freq}</div>
             </div>
 
-            
           </div>
 
           {/* Summary */}
@@ -344,7 +498,7 @@ export default function LoanCalculator() {
               </table>
             </div>
           )}
-          <div className="flex items-center">
+           <div className="flex items-center">
               <button 
                 onClick={exportCSV} 
                 className="w-full px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"

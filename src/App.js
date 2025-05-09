@@ -269,15 +269,7 @@ export default function LoanCalculator() {
               <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">{fmt(prepayment)} every {freq}</div>
             </div>
 
-            {/* Export Button */}
-            <div className="flex items-center">
-              <button 
-                onClick={exportCSV} 
-                className="w-full px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-              >
-                Export Table to CSV
-              </button>
-            </div>
+            
           </div>
 
           {/* Summary */}
@@ -352,6 +344,14 @@ export default function LoanCalculator() {
               </table>
             </div>
           )}
+          <div className="flex items-center">
+              <button 
+                onClick={exportCSV} 
+                className="w-full px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              >
+                Export Table to CSV
+              </button>
+            </div>
         </div>
 
         {/* Footer */}

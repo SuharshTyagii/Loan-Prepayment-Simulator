@@ -274,7 +274,7 @@ export default function LoanCalculator() {
 
           {/* Summary */}
           <div className={`mt-6 p-4 rounded-lg transition-colors ${darkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
-            <p>Periods to payoff: <span className="font-semibold">{payoffPeriods}</span></p>
+            <p>Periods to payoff (Months): <span className="font-semibold">{payoffPeriods}</span></p>
             <p>Total interest paid: <span className="font-semibold">{fmt(totalInterest)}</span></p>
           </div>
 
@@ -285,7 +285,7 @@ export default function LoanCalculator() {
                 <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? "#555" : "#ccc"} />
                 <XAxis 
                   dataKey="period" 
-                  label={{ value: 'Period', position: 'insideBottom', offset: -5 }} 
+                  label={{ value: 'Period (months)', position: 'insideBottom', offset: -5 }} 
                   stroke={darkMode ? "#aaa" : "#666"}
                 />
                 <YAxis 

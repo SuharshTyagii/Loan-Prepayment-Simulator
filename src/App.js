@@ -1,6 +1,28 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 import { Plus, Minus, Info, Sun, Moon, Star, Globe } from 'lucide-react';
+
+// Custom Tooltip component
+const CustomTooltip = ({ children, content }) => {
+  const [isVisible, setIsVisible] = useState(false);
+  
+  return (
+    <div className="relative inline-block">
+      <div 
+        className="inline-flex items-center cursor-help"
+        onMouseEnter={() => setIsVisible(true)}
+        onMouseLeave={() => setIsVisible(false)}
+      >
+        {children}
+      </div>
+      {isVisible && (
+        <div className="absolute z-10 px-3 py-2 text-sm w-48 rounded shadow-lg bg-gray-800 text-white -top-1 left-6">
+          {content}
+        </div>
+      )}
+    </div>
+  );
+};
 
 // Country code to currency mapping
 const countryToCurrency = {
@@ -55,91 +77,49 @@ const currencies = [
   { code: 'EGP', name: 'Egyptian Pound', flag: '🇪🇬' }
 ];
 
-export default function LoanCalculator() {
-  const [original, setOriginal] = useState(2945000);
-  const [remaining, setRemaining] = useState(2945000);
-  const [emi, setEmi] = useState(33600);
-  const [annualRate, setAnnualRate] = useState(8.2);
-  const [prepayment, setPrepayment] = useState(0);
-  const [oneTime, setOneTime] = useState(0);
-  const [freq, setFreq] = useState('monthly');
-  const [currency, setCurrency] = useState('INR');
-  const [darkMode, setDarkMode] = useState(false);
-  const [showTable, setShowTable] = useState(true);
-  const [isDetectingLocation, setIsDetectingLocation] = useState(false);
-  const [locationDetected, setLocationDetected] = useState(false);
+function useLocalStorage(key, defaultValue) {
+  const [value, setValue] = useState(() => {
+    try {
+      const stored = localStorage.getItem(key);
+      return stored !== null ? JSON.parse(stored) : defaultValue;
+    } catch {
+      return defaultValue;
+    }
+  });
+  useEffect(() => {
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch {};
+  }, [key, value]);
+  return [value, setValue];
+}
 
+
+export default function LoanCalculator() {
+  const [original, setOriginal] = useLocalStorage('original', 2945000);
+  const [remaining, setRemaining] = useLocalStorage('remaining', 2945000);
+  const [emi, setEmi] = useLocalStorage('emi', 33600);
+  const [annualRate, setAnnualRate] = useLocalStorage('annualRate', 8.2);
+  const [prepayment, setPrepayment] = useLocalStorage('prepayment', 0);
+  const [oneTime, setOneTime] = useLocalStorage('oneTime', 0);
+  const [freq, setFreq] = useLocalStorage('freq', 'monthly');
+  const [currency, setCurrency] = useLocalStorage('currency', 'INR');
+  const [darkMode, setDarkMode] = useLocalStorage('darkMode', false);
+  const [showTable, setShowTable] = useLocalStorage('showTable', true);
+  const [locationDetected, setLocationDetected] = useLocalStorage('locationDetected', false);
+  const [isDetectingLocation, setIsDetectingLocation] = useState(false);
+  
   // Apply system dark mode preference
   useEffect(() => {
-    const mq = window.matchMedia('(prefers-color-scheme: dark)');
-    setDarkMode(mq.matches);
-    const handler = e => setDarkMode(e.matches);
-    mq.addEventListener('change', handler);
-    return () => mq.removeEventListener('change', handler);
-  }, []);
-  
-  // Detect currency based on location
+    document.documentElement.classList.toggle('dark', darkMode);
+  }, [darkMode]);
+
+  // Detect system preference once if not in storage
   useEffect(() => {
-    // Skip if already detected or currently detecting
-    if (locationDetected || isDetectingLocation) return;
-    
-    const detectCurrency = async () => {
-      try {
-        setIsDetectingLocation(true);
-        const data = await detectLocationWithFallback();
-        
-        if (data.status === 'success' && data.countryCode) {
-          // Find the appropriate currency for this country
-          let detectedCurrency = countryToCurrency[data.countryCode];
-          
-          // If we have a mapping for this country
-          if (detectedCurrency) {
-            setCurrency(detectedCurrency);
-            
-            // Adjust default values based on currency
-            if (detectedCurrency !== 'INR') {
-              // Convert from INR to the appropriate magnitude for the detected currency
-              const conversionFactors = {
-                'USD': 0.012, 'EUR': 0.011, 'GBP': 0.0094, 'JPY': 1.8,
-                'AUD': 0.018, 'CAD': 0.016, 'CHF': 0.010, 'CNY': 0.086, 
-                'HKD': 0.094, 'SGD': 0.016, 'NZD': 0.019, 'KRW': 16.0,
-                'SEK': 0.12, 'NOK': 0.13, 'MXN': 0.20, 'BRL': 0.060,
-                'ZAR': 0.22, 'RUB': 1.1, 'TRY': 0.39,
-                'DEFAULT': 0.012 // Default factor if specific one not found
-              };
-              
-              const factor = conversionFactors[detectedCurrency] || conversionFactors.DEFAULT;
-              
-              // Adjust the values based on currency to more reasonable amounts
-              if (detectedCurrency === 'JPY' || detectedCurrency === 'KRW') {
-                // For high-value currencies, round to nearest whole number
-                setOriginal(Math.round(2945000 * factor));
-                setRemaining(Math.round(2945000 * factor));
-                setEmi(Math.round(33600 * factor));
-              } else {
-                // For others, use appropriate decimal places
-                const roundFactor = detectedCurrency === 'USD' || detectedCurrency === 'EUR' || 
-                                   detectedCurrency === 'GBP' ? 1000 : 100;
-                
-                // Round to nearest appropriate value
-                setOriginal(Math.round(2945000 * factor / roundFactor) * roundFactor);
-                setRemaining(Math.round(2945000 * factor / roundFactor) * roundFactor);
-                setEmi(Math.round(33600 * factor / 10) * 10);
-              }
-            }
-          }
-        }
-        
-        setLocationDetected(true);
-      } catch (error) {
-        console.error('Error detecting location:', error);
-      } finally {
-        setIsDetectingLocation(false);
-      }
-    };
-    
-    detectCurrency();
-  }, [locationDetected, isDetectingLocation]);
+    if (!localStorage.getItem('darkMode')) {
+      const mq = window.matchMedia('(prefers-color-scheme: dark)');
+      setDarkMode(mq.matches);
+      mq.addEventListener('change', e => setDarkMode(e.matches));
+    }
+  }, []);
 
   // Toggle dark mode class on document
   useEffect(() => {
@@ -150,88 +130,44 @@ export default function LoanCalculator() {
     }
   }, [darkMode]);
   
-  // Handle CORS issues with a fallback
-  const detectLocationWithFallback = async () => {
-    try {
-      // First try with the direct API
-      setIsDetectingLocation(true);
-      
-      // Try the direct API call with a short timeout
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3000);
-      
-      const response = await fetch('http://ip-api.com/json/?fields=61439', {
-        signal: controller.signal
-      });
-      
-      clearTimeout(timeoutId);
-      
-      if (!response.ok) throw new Error('Direct API failed');
-      
-      const data = await response.json();
-      return data;
-    } catch (error) {
-      console.log('Direct API failed, trying JSONP fallback...');
-      
-      // Fallback to JSONP approach
-      return new Promise((resolve) => {
-        const script = document.createElement('script');
-        const callbackName = 'ipCallback_' + Math.floor(Math.random() * 10000);
-        
-        // Create global callback function
-        window[callbackName] = (data) => {
-          document.head.removeChild(script);
-          delete window[callbackName];
-          resolve(data);
-        };
-        
-        script.src = `https://ip-api.com/json/?callback=${callbackName}&fields=61439`;
-        document.head.appendChild(script);
-        
-        // Set timeout for JSONP
-        setTimeout(() => {
-          if (window[callbackName]) {
-            document.head.removeChild(script);
-            delete window[callbackName];
-            resolve({ status: 'fail', message: 'JSONP timeout' });
-          }
-        }, 5000);
-      });
-    }
-  };
 
   // Payment frequency mapping
   const freqMap = { weekly: 52, biweekly: 26, monthly: 12, '6-months': 2, yearly: 1 };
   const periodsPerYear = freqMap[freq];
 
-  // Build amortization schedule
-  const scheduleData = useMemo(() => {
-    let balance = Math.max(0, remaining - oneTime);
-    const ratePerPeriod = annualRate / 100 / periodsPerYear;
-    const data = [];
-    let period = 0;
-    let cumInterest = 0;
-    const paymentBase = emi * (periodsPerYear / 12);
+const periodCap = 500;
 
-    while (balance > 0 && period < 2000) {
-      period++;
-      const interest = balance * ratePerPeriod;
-      let payment = paymentBase + prepayment;
-      if (payment > balance + interest) payment = balance + interest;
-      const principalPaid = payment - interest;
-      balance -= principalPaid;
-      cumInterest += interest;
-      data.push({
-        period,
-        interest: +interest.toFixed(2),
-        cumInterest: +cumInterest.toFixed(2),
-        balance: +Math.max(0, balance).toFixed(2)
-      });
-      if (balance <= 0) break;
-    }
-    return data;
-  }, [remaining, oneTime, emi, annualRate, prepayment, freq]);
+const scheduleData = useMemo(() => {
+  let balance = Math.max(0, remaining - oneTime);
+  const ratePerPeriod = annualRate / 100 / periodsPerYear;
+  const data = [];
+  let period = 0;
+  let cumInterest = 0;
+  const paymentBase = emi * (periodsPerYear / 12);
 
+  if (emi < (balance * ratePerPeriod)) {
+  console.warn('EMI is too low to cover the interest!');
+  }
+  
+  while (balance > 0 && period < periodCap) {
+    period++;
+    const interest = balance * ratePerPeriod;
+    let payment = paymentBase + prepayment;
+    if (payment > balance + interest) payment = balance + interest;
+    const principalPaid = payment - interest;
+    balance -= principalPaid;
+    cumInterest += interest;
+    data.push({
+      period,
+      interest: +interest.toFixed(2),
+      cumInterest: +cumInterest.toFixed(2),
+      balance: +Math.max(0, balance).toFixed(2)
+    });
+    if (balance <= 0) break;
+  }
+  return data;
+}, [remaining, oneTime, emi, annualRate, prepayment, freq]);
+  
   const payoffPeriods = scheduleData.length;
   const totalInterest = scheduleData.reduce((sum, r) => sum + r.interest, 0).toFixed(2);
 
@@ -310,7 +246,9 @@ export default function LoanCalculator() {
             <div>
               <label className="block font-medium mb-1 flex items-center">
                 Original Loan Amount 
-                <Info className={`ml-1 w-4 h-4 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} title="The initial principal borrowed" />
+                <CustomTooltip content="The initial principal borrowed from the lender">
+                  <Info className={`ml-1 w-4 h-4 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} />
+                </CustomTooltip>
               </label>
               <input 
                 type="number" 
@@ -325,7 +263,9 @@ export default function LoanCalculator() {
             <div>
               <label className="block font-medium mb-1 flex items-center">
                 Remaining Principal 
-                <Info className={`ml-1 w-4 h-4 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} title="Outstanding before one-time payment" />
+                <CustomTooltip content="Current outstanding principal amount before any one-time payment">
+                  <Info className={`ml-1 w-4 h-4 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} />
+                </CustomTooltip>
               </label>
               <input 
                 type="number" 
@@ -340,7 +280,9 @@ export default function LoanCalculator() {
             <div className="md:col-span-2">
               <label className="block font-medium mb-1 flex items-center">
                 One‑Time Prepayment 
-                <Info className={`ml-1 w-4 h-4 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} title="Lump-sum paid immediately" />
+                <CustomTooltip content="Lump-sum payment applied immediately to reduce the principal">
+                  <Info className={`ml-1 w-4 h-4 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} />
+                </CustomTooltip>
               </label>
               <input 
                 type="number" 
@@ -355,7 +297,9 @@ export default function LoanCalculator() {
             <div>
               <label className="block font-medium mb-1 flex items-center">
                 Monthly EMI 
-                <Info className={`ml-1 w-4 h-4 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} title="Fixed scheduled payment" />
+                <CustomTooltip content="Equated Monthly Installment - your fixed monthly payment amount">
+                  <Info className={`ml-1 w-4 h-4 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} />
+                </CustomTooltip>
               </label>
               <input 
                 type="number" 
@@ -370,7 +314,9 @@ export default function LoanCalculator() {
             <div>
               <label className="block font-medium mb-1 flex items-center">
                 Interest Rate: {annualRate}% p.a. 
-                <Info className={`ml-1 w-4 h-4 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} title="Annual interest rate" />
+                <CustomTooltip content="Annual interest rate applied to your loan">
+                  <Info className={`ml-1 w-4 h-4 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} />
+                </CustomTooltip>
               </label>
               <input 
                 type="range" 
@@ -386,8 +332,10 @@ export default function LoanCalculator() {
             {/* Extra Payment & Frequency */}
             <div>
               <label className="block font-medium mb-1 flex items-center">
-                Extra Payment 
-                <Info className={`ml-1 w-4 h-4 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} title="Additional payment per period" />
+                Recurring Pre-Payment 
+                <CustomTooltip content="Additional payment made each period on top of your regular EMI">
+                  <Info className={`ml-1 w-4 h-4 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} />
+                </CustomTooltip>
               </label>
               <div className="flex mt-1">
                 <button 
@@ -446,7 +394,7 @@ export default function LoanCalculator() {
                   label={{ value: `Balance (${currency})`, angle: -90, position: 'insideLeft' }} 
                   stroke={darkMode ? "#aaa" : "#666"}
                 />
-                <Tooltip 
+                <RechartsTooltip 
                   formatter={val => fmt(val)} 
                   contentStyle={{ 
                     backgroundColor: darkMode ? '#333' : '#fff',

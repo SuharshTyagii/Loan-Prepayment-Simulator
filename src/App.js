@@ -147,7 +147,7 @@ export default function LoanCalculator() {
 
         {/* Main Card */}
         <div className={`p-6 shadow-lg rounded-2xl transition-colors ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
-          <h2 className="text-2xl font-bold mb-6 text-center">Loan Payoff Simulator</h2>
+          <h2 className="text-2xl font-bold mb-6 text-center">Loan Prepayment Simulator</h2>
 
           {/* Input Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

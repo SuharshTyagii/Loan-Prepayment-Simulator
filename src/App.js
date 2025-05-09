@@ -45,7 +45,7 @@ export default function LoanCalculator() {
   const [freq, setFreq] = useState('monthly');
   const [currency, setCurrency] = useState('INR');
   const [darkMode, setDarkMode] = useState(false);
-  const [showTable, setShowTable] = useState(false);
+  const [showTable, setShowTable] = useState(true);
 
   // Apply system dark mode preference
   useEffect(() => {
@@ -270,7 +270,7 @@ export default function LoanCalculator() {
             </div>
 
             {/* Export Button */}
-            <div className="flex items-end">
+            <div className="flex items-center">
               <button 
                 onClick={exportCSV} 
                 className="w-full px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"

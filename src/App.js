@@ -1,64 +1,10 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 import { Plus, Minus, Info, Sun, Moon, Star, Globe } from 'lucide-react';
-
+import { CustomTooltip} from './components/CustomTooltip'
 // Currency configuration with locale mapping
-const currencies = 
-[
-  { code: 'AED', name: 'UAE Dirham', flag: '🇦🇪', locale: 'ar-AE' },
-  { code: 'AUD', name: 'Australian Dollar', flag: '🇦🇺', locale: 'en-AU' },
-  { code: 'BRL', name: 'Brazilian Real', flag: '🇧🇷', locale: 'pt-BR' },
-  { code: 'CAD', name: 'Canadian Dollar', flag: '🇨🇦', locale: 'en-CA' },
-  { code: 'CHF', name: 'Swiss Franc', flag: '🇨🇭', locale: 'de-CH' },
-  { code: 'CNY', name: 'Chinese Yuan', flag: '🇨🇳', locale: 'zh-CN' },
-  { code: 'EGP', name: 'Egyptian Pound', flag: '🇪🇬', locale: 'ar-EG' },
-  { code: 'EUR', name: 'Euro', flag: '🇪🇺', locale: 'de-DE' },
-  { code: 'GBP', name: 'British Pound', flag: '🇬🇧', locale: 'en-GB' },
-  { code: 'HKD', name: 'Hong Kong Dollar', flag: '🇭🇰', locale: 'zh-HK' },
-  { code: 'IDR', name: 'Indonesian Rupiah', flag: '🇮🇩', locale: 'id-ID' },
-  { code: 'INR', name: 'Indian Rupee', flag: '🇮🇳', locale: 'en-IN' },
-  { code: 'JPY', name: 'Japanese Yen', flag: '🇯🇵', locale: 'ja-JP' },
-  { code: 'KRW', name: 'South Korean Won', flag: '🇰🇷', locale: 'ko-KR' },
-  { code: 'MXN', name: 'Mexican Peso', flag: '🇲🇽', locale: 'es-MX' },
-  { code: 'MYR', name: 'Malaysian Ringgit', flag: '🇲🇾', locale: 'ms-MY' },
-  { code: 'NOK', name: 'Norwegian Krone', flag: '🇳🇴', locale: 'nb-NO' },
-  { code: 'NZD', name: 'New Zealand Dollar', flag: '🇳🇿', locale: 'en-NZ' },
-  { code: 'PHP', name: 'Philippine Peso', flag: '🇵🇭', locale: 'fil-PH' },
-  { code: 'PKR', name: 'Pakistani Rupee', flag: '🇵🇰', locale: 'ur-PK' },
-  { code: 'RUB', name: 'Russian Ruble', flag: '🇷🇺', locale: 'ru-RU' },
-  { code: 'SAR', name: 'Saudi Riyal', flag: '🇸🇦', locale: 'ar-SA' },
-  { code: 'SEK', name: 'Swedish Krona', flag: '🇸🇪', locale: 'sv-SE' },
-  { code: 'SGD', name: 'Singapore Dollar', flag: '🇸🇬', locale: 'en-SG' },
-  { code: 'THB', name: 'Thai Baht', flag: '🇹🇭', locale: 'th-TH' },
-  { code: 'TRY', name: 'Turkish Lira', flag: '🇹🇷', locale: 'tr-TR' },
-  { code: 'USD', name: 'US Dollar', flag: '🇺🇸', locale: 'en-US' },
-  { code: 'VND', name: 'Vietnamese Dong', flag: '🇻🇳', locale: 'vi-VN' },
-  { code: 'ZAR', name: 'South African Rand', flag: '🇿🇦', locale: 'en-ZA' }
-]
-
-
-// Custom Tooltip Component 
-const CustomTooltip = ({ children, content }) => {
-  const [isVisible, setIsVisible] = useState(false);
-  
-  return (
-    <div className="relative inline-block">
-      <div 
-        className="cursor-help"
-        onMouseEnter={() => setIsVisible(true)}
-        onMouseLeave={() => setIsVisible(false)}
-      >
-        {children}
-      </div>
-      {isVisible && (
-        <div className="absolute z-10 w-60 p-2 text-sm bg-black text-white rounded shadow-lg -translate-x-1/2 left-1/2 bottom-full mb-2">
-          {content}
-          <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-black rotate-45"></div>
-        </div>
-      )}
-    </div>
-  );
-};
+import { currencies } from './common/currencies'
+import { Table} from './components/Table'
 
 function useLocalStorage(key, defaultValue) {
   const [value, setValue] = useState(() => {
@@ -443,27 +389,7 @@ export default function LoanCalculator() {
 
           {/* Table */}
           {showTable && (
-            <div className="overflow-auto">
-              <table className={`min-w-full table-auto border-collapse mb-6 transition-colors ${darkMode ? 'text-gray-200' : 'text-gray-800'}`}>
-                <thead className={`${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
-                  <tr>
-                    {['Period', 'Interest', 'Cumulative Interest', 'Balance'].map(h => (
-                      <th key={h} className={`border px-3 py-2 text-left ${darkMode ? 'border-gray-600' : 'border-gray-300'}`}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {scheduleData.map(r => (
-                    <tr key={r.period} className={`${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-50'}`}>
-                      <td className={`border px-3 py-1 ${darkMode ? 'border-gray-600' : 'border-gray-300'}`}>{r.period}</td>
-                      <td className={`border px-3 py-1 ${darkMode ? 'border-gray-600' : 'border-gray-300'}`}>{fmt(r.interest)}</td>
-                      <td className={`border px-3 py-1 ${darkMode ? 'border-gray-600' : 'border-gray-300'}`}>{fmt(r.cumInterest)}</td>
-                      <td className={`border px-3 py-1 ${darkMode ? 'border-gray-600' : 'border-gray-300'}`}>{fmt(r.balance)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+           <Table darkMode={darkMode} scheduleData={scheduleData} fmt={fmt} />
           )}
           <div className="flex items-center">
             <button 

@@ -1,10 +1,10 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 import { Plus, Minus, Info, Sun, Moon, Star, Globe } from 'lucide-react';
-import { CustomTooltip} from './components/CustomTooltip'
+import { CustomTooltip } from './components/CustomTooltip'
 // Currency configuration with locale mapping
 import { currencies } from './common/currencies'
-import { Table} from './components/Table'
+import { Table } from './components/Table'
 
 function useLocalStorage(key, defaultValue) {
   const [value, setValue] = useState(() => {
@@ -15,11 +15,11 @@ function useLocalStorage(key, defaultValue) {
       return defaultValue;
     }
   });
-  
+
   useEffect(() => {
-    try { localStorage.setItem(key, JSON.stringify(value)); } catch {};
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch { };
   }, [key, value]);
-  
+
   return [value, setValue];
 }
 
@@ -36,7 +36,7 @@ export default function LoanCalculator() {
   const [showTable, setShowTable] = useLocalStorage('showTable', true);
   const [locationDetected, setLocationDetected] = useLocalStorage('locationDetected', false);
   const [isDetectingLocation, setIsDetectingLocation] = useState(false);
-  
+
   // Apply system dark mode preference
   useEffect(() => {
     document.documentElement.classList.toggle('dark', darkMode);
@@ -59,7 +59,7 @@ export default function LoanCalculator() {
       document.documentElement.classList.remove('dark');
     }
   }, [darkMode]);
-  
+
   // Payment frequency mapping
   const freqMap = { weekly: 52, biweekly: 26, monthly: 12, '6-months': 2, yearly: 1 };
   const periodsPerYear = freqMap[freq];
@@ -72,66 +72,67 @@ export default function LoanCalculator() {
   const periodCap = 500;
 
   const scheduleData = useMemo(() => {
-    let balance = Math.max(0, remaining - oneTime);
+    // let balance = Math.max(0, remaining - oneTime);
+    const remNum = parseFloat(remaining) || 0;
+    const oneTimeNum = parseFloat(oneTime) || 0;
+    let balance = Math.max(0, remNum - oneTimeNum);
     const ratePerPeriod = annualRate / 100 / periodsPerYear;
     const data = [];
     let period = 0;
     let cumInterest = 0;
-    
-    // Fix: Calculate monthly payment equivalent for different frequencies
-    const paymentBase = emi * 12 / periodsPerYear;
 
-    
-    // Calculate recurring prepayment for the current frequency
-    const prepaymentPerPeriod = prepayment * 12 / periodsPerYear;
+    const emiNum = parseFloat(emi) || 0;
+    const prepaymentNum = parseFloat(prepayment) || 0;
+    const paymentBase = emiNum * 12 / periodsPerYear;
+    const prepaymentPerPeriod = prepaymentNum;
 
     if (paymentBase < (balance * ratePerPeriod)) {
       console.warn('EMI is too low to cover the interest!');
     }
-    
+
     while (balance > 0 && period < periodCap) {
       period++;
       const interest = balance * ratePerPeriod;
       let payment = paymentBase + prepaymentPerPeriod;
-      
+
       if (payment > balance + interest) payment = balance + interest;
       const principalPaid = payment - interest;
-      
+
       balance -= principalPaid;
       cumInterest += interest;
-      
+
       data.push({
         period,
         interest: +interest.toFixed(2),
         cumInterest: +cumInterest.toFixed(2),
         balance: +Math.max(0, balance).toFixed(2)
       });
-      
+
       if (balance <= 0) break;
     }
     return data;
   }, [remaining, oneTime, emi, annualRate, prepayment, freq, periodsPerYear]);
-    
+
   const payoffPeriods = scheduleData.length;
   const totalInterest = scheduleData.reduce((sum, r) => sum + r.interest, 0).toFixed(2);
 
   // Enhanced formatting helper with locale support
   const fmt = val => {
-    const options = { 
-      style: 'currency', 
+    const options = {
+      style: 'currency',
       currency: currency,
       maximumFractionDigits: currency === 'JPY' || currency === 'KRW' || currency === 'VND' ? 0 : 2
     };
-    
+
     return new Intl.NumberFormat(currencyInfo.locale, options).format(val);
   };
 
   // Format numbers without currency symbol
   const fmtNum = val => {
-    const options = { 
+    const options = {
       maximumFractionDigits: 2
     };
-    
+
     return new Intl.NumberFormat(currencyInfo.locale, options).format(val);
   };
 
@@ -151,7 +152,7 @@ export default function LoanCalculator() {
   // Convert payment periods to user-friendly terms
   const getPayoffTimeText = () => {
     if (payoffPeriods === 0) return "0";
-    
+
     switch (freq) {
       case 'weekly':
         return `${payoffPeriods} weeks (${(payoffPeriods / 52).toFixed(1)} years)`;
@@ -172,13 +173,14 @@ export default function LoanCalculator() {
   const handleNumericInput = (value, setter, min = 0, max = Infinity) => {
     // If input is empty, set to 0
     if (value === '') {
-      setter(0);
+      setter('');        // allow empty string in the input
       return;
     }
 
+
     // Parse the value properly
     const parsed = parseFloat(value);
-    
+
     // Only update if it's a valid number
     if (!isNaN(parsed)) {
       // Apply min/max constraints
@@ -197,21 +199,21 @@ export default function LoanCalculator() {
           <div className="flex flex-wrap items-end gap-4">
             <div className="w-full sm:w-auto relative">
               <div>
-                 <label className="block text-sm mb-1">Currency</label>
-              <div className="flex">
-                <select 
-                  className={`p-2 border rounded-lg w-full sm:w-auto ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-300'}`} 
-                  value={currency} 
-                  onChange={e => setCurrency(e.target.value)}
-                >
-                  {currencies.map(c => <option key={c.code} value={c.code}>{c.flag} {c.code}</option>)}
-                </select>
-               
+                <label className="block text-sm mb-1">Currency</label>
+                <div className="flex">
+                  <select
+                    className={`p-2 border rounded-lg w-full sm:w-auto ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-300'}`}
+                    value={currency}
+                    onChange={e => setCurrency(e.target.value)}
+                  >
+                    {currencies.map(c => <option key={c.code} value={c.code}>{c.flag} {c.code}</option>)}
+                  </select>
+
+                </div>
               </div>
             </div>
-             </div>
-            <button 
-              onClick={() => setDarkMode(!darkMode)} 
+            <button
+              onClick={() => setDarkMode(!darkMode)}
               className={`p-2 rounded-lg transition-colors ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-200 hover:bg-gray-300'}`}
               aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
             >
@@ -229,16 +231,16 @@ export default function LoanCalculator() {
             {/* Original Loan */}
             <div>
               <label className="block font-medium mb-1 flex items-center">
-                Original Loan Amount 
+                Original Loan Amount
                 <CustomTooltip content="The initial principal borrowed from the lender">
                   <Info className={`ml-1 w-4 h-4 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} />
                 </CustomTooltip>
               </label>
-              <input 
-                type="number" 
-                className={`w-full p-3 border rounded-lg transition-colors ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'}`} 
-                value={original || ''} 
-                onChange={e => handleNumericInput(e.target.value, setOriginal)} 
+              <input
+                type="number"
+                className={`w-full p-3 border rounded-lg transition-colors ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'}`}
+                value={original || ''}
+                onChange={e => handleNumericInput(e.target.value, setOriginal)}
               />
               <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">{fmt(original)}</div>
             </div>
@@ -246,16 +248,16 @@ export default function LoanCalculator() {
             {/* Remaining Principal */}
             <div>
               <label className="block font-medium mb-1 flex items-center">
-                Remaining Principal 
+                Remaining Principal
                 <CustomTooltip content="Current outstanding principal amount before any one-time payment">
                   <Info className={`ml-1 w-4 h-4 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} />
                 </CustomTooltip>
               </label>
-              <input 
-                type="number" 
-                className={`w-full p-3 border rounded-lg transition-colors ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'}`} 
-                value={remaining || ''} 
-                onChange={e => handleNumericInput(e.target.value, setRemaining)} 
+              <input
+                type="number"
+                className={`w-full p-3 border rounded-lg transition-colors ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'}`}
+                value={remaining || ''}
+                onChange={e => handleNumericInput(e.target.value, setRemaining)}
               />
               <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">{fmt(remaining)}</div>
             </div>
@@ -263,16 +265,16 @@ export default function LoanCalculator() {
             {/* One-Time Prepayment */}
             <div className="md:col-span-2">
               <label className="block font-medium mb-1 flex items-center">
-                One‑Time Prepayment 
+                One‑Time Prepayment
                 <CustomTooltip content="Lump-sum payment applied immediately to reduce the principal">
                   <Info className={`ml-1 w-4 h-4 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} />
                 </CustomTooltip>
               </label>
-              <input 
-                type="number" 
-                className={`w-full p-3 border rounded-lg transition-colors ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'}`} 
-                value={oneTime || ''} 
-                onChange={e => handleNumericInput(e.target.value, setOneTime, 0, remaining)} 
+              <input
+                type="number"
+                className={`w-full p-3 border rounded-lg transition-colors ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'}`}
+                value={oneTime || ''}
+                onChange={e => handleNumericInput(e.target.value, setOneTime, 0, remaining)}
               />
               <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">Will reduce balance by {fmt(Math.min(oneTime, remaining))}</div>
             </div>
@@ -280,16 +282,16 @@ export default function LoanCalculator() {
             {/* EMI */}
             <div>
               <label className="block font-medium mb-1 flex items-center">
-                Monthly EMI 
+                Monthly EMI
                 <CustomTooltip content="Equated Monthly Installment - your fixed monthly payment amount">
                   <Info className={`ml-1 w-4 h-4 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} />
                 </CustomTooltip>
               </label>
-              <input 
-                type="number" 
-                className={`w-full p-3 border rounded-lg transition-colors ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'}`} 
-                value={emi || ''} 
-                onChange={e => handleNumericInput(e.target.value, setEmi)} 
+              <input
+                type="number"
+                className={`w-full p-3 border rounded-lg transition-colors ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'}`}
+                value={emi || ''}
+                onChange={e => handleNumericInput(e.target.value, setEmi)}
               />
               <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">{fmt(emi)}</div>
             </div>
@@ -297,58 +299,58 @@ export default function LoanCalculator() {
             {/* Interest Rate */}
             <div>
               <label className="block font-medium mb-1 flex items-center">
-                Interest Rate: {fmtNum(annualRate)}% p.a. 
+                Interest Rate: {fmtNum(annualRate)}% p.a.
                 <CustomTooltip content="Annual interest rate applied to your loan">
                   <Info className={`ml-1 w-4 h-4 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} />
                 </CustomTooltip>
               </label>
-              <input 
-                type="range" 
-                min="0" 
-                max="20" 
-                step="0.1" 
-                value={annualRate} 
-                onChange={e => setAnnualRate(+e.target.value)} 
-                className="w-full mt-1" 
+              <input
+                type="range"
+                min="0"
+                max="20"
+                step="0.1"
+                value={annualRate}
+                onChange={e => setAnnualRate(+e.target.value)}
+                className="w-full mt-1"
               />
             </div>
 
             {/* Extra Payment & Frequency */}
             <div>
               <label className="block font-medium mb-1 flex items-center">
-                Recurring Pre-Payment 
+                Recurring Pre-Payment
                 <CustomTooltip content="Additional payment made each period on top of your regular EMI">
                   <Info className={`ml-1 w-4 h-4 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} />
                 </CustomTooltip>
               </label>
               <div className="flex mt-1">
-                <button 
-                  onClick={() => setPrepayment(p => Math.max(0, p - 2000))} 
+                <button
+                  onClick={() => setPrepayment(p => Math.max(0, p - 2000))}
                   className={`p-2 rounded-l-lg transition-colors ${darkMode ? 'bg-blue-800 hover:bg-blue-700' : 'bg-blue-100 hover:bg-blue-200'}`}
                 >
                   <Minus className="w-4 h-4" />
                 </button>
-                <input 
-                  type="number" 
-                  step="1000" 
-                  className={`w-full text-center p-3 border-t border-b transition-colors ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'}`} 
-                  value={prepayment || ''} 
-                  onChange={e => handleNumericInput(e.target.value, setPrepayment, 0, remaining)} 
+                <input
+                  type="number"
+                  step="1000"
+                  className={`w-full text-center p-3 border-t border-b transition-colors ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'}`}
+                  value={prepayment || ''}
+                  onChange={e => handleNumericInput(e.target.value, setPrepayment, 0, remaining)}
                 />
-                <button 
-                  onClick={() => setPrepayment(p => Math.min(remaining, p + 2000))} 
+                <button
+                  onClick={() => setPrepayment(p => Math.min(remaining, p + 2000))}
                   className={`p-2 rounded-r-lg transition-colors ${darkMode ? 'bg-blue-800 hover:bg-blue-700' : 'bg-blue-100 hover:bg-blue-200'}`}
                 >
                   <Plus className="w-4 h-4" />
                 </button>
               </div>
               <div className="mt-2">
-                <select 
-                  className={`w-full p-3 border rounded-lg transition-colors ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'}`} 
-                  value={freq} 
+                <select
+                  className={`w-full p-3 border rounded-lg transition-colors ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'}`}
+                  value={freq}
                   onChange={e => setFreq(e.target.value)}
                 >
-                  {['weekly','biweekly','monthly','6-months','yearly'].map(v => 
+                  {['weekly', 'biweekly', 'monthly', '6-months', 'yearly'].map(v =>
                     <option key={v} value={v}>{v}</option>
                   )}
                 </select>
@@ -368,13 +370,13 @@ export default function LoanCalculator() {
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={scheduleData}>
                 <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? "#555" : "#ccc"} />
-                <XAxis 
-                  dataKey="period" 
-                  label={{ value: `Period (${freq})`, position: 'insideBottom', offset: -5 }} 
+                <XAxis
+                  dataKey="period"
+                  label={{ value: `Period (${freq})`, position: 'insideBottom', offset: -5 }}
                   stroke={darkMode ? "#aaa" : "#666"}
                 />
-                <YAxis 
-                  label={{ value: `Balance (${currency})`, angle: -90, position: 'insideLeft' }} 
+                <YAxis
+                  label={{ value: `Balance (${currency})`, angle: -90, position: 'insideLeft' }}
                   stroke={darkMode ? "#aaa" : "#666"}
                   tickFormatter={val => {
                     // Short format for chart labels
@@ -384,19 +386,19 @@ export default function LoanCalculator() {
                     return val;
                   }}
                 />
-                <RechartsTooltip 
-                  formatter={val => fmt(val)} 
-                  contentStyle={{ 
+                <RechartsTooltip
+                  formatter={val => fmt(val)}
+                  contentStyle={{
                     backgroundColor: darkMode ? '#333' : '#fff',
                     borderColor: darkMode ? '#555' : '#ccc',
                     color: darkMode ? '#eee' : '#333'
                   }}
                 />
-                <Line 
-                  type="monotone" 
-                  dataKey="balance" 
-                  stroke="#4f46e5" 
-                  strokeWidth={2} 
+                <Line
+                  type="monotone"
+                  dataKey="balance"
+                  stroke="#4f46e5"
+                  strokeWidth={2}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -404,8 +406,8 @@ export default function LoanCalculator() {
 
           {/* Table Toggle */}
           <div className="flex justify-center">
-            <button 
-              onClick={() => setShowTable(s => !s)} 
+            <button
+              onClick={() => setShowTable(s => !s)}
               className="mb-4 px-6 py-2 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 transition-colors"
             >
               {showTable ? 'Hide' : 'Show'} Amortization Table
@@ -417,8 +419,8 @@ export default function LoanCalculator() {
             <Table darkMode={darkMode} scheduleData={scheduleData} fmt={fmt} />
           )}
           <div className="flex items-center">
-            <button 
-              onClick={exportCSV} 
+            <button
+              onClick={exportCSV}
               className="w-full px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
             >
               Export Table to CSV

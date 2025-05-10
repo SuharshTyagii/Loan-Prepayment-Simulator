@@ -77,30 +77,39 @@ export default function LoanCalculator() {
     const data = [];
     let period = 0;
     let cumInterest = 0;
-    const paymentBase = emi * (periodsPerYear / 12);
+    
+    // Fix: Calculate monthly payment equivalent for different frequencies
+    const paymentBase = emi * periodsPerYear / 12;
+    
+    // Calculate recurring prepayment for the current frequency
+    const prepaymentPerPeriod = prepayment;
 
-    if (emi < (balance * ratePerPeriod)) {
+    if (paymentBase < (balance * ratePerPeriod)) {
       console.warn('EMI is too low to cover the interest!');
     }
     
     while (balance > 0 && period < periodCap) {
       period++;
       const interest = balance * ratePerPeriod;
-      let payment = paymentBase + prepayment;
+      let payment = paymentBase + prepaymentPerPeriod;
+      
       if (payment > balance + interest) payment = balance + interest;
       const principalPaid = payment - interest;
+      
       balance -= principalPaid;
       cumInterest += interest;
+      
       data.push({
         period,
         interest: +interest.toFixed(2),
         cumInterest: +cumInterest.toFixed(2),
         balance: +Math.max(0, balance).toFixed(2)
       });
+      
       if (balance <= 0) break;
     }
     return data;
-  }, [remaining, oneTime, emi, annualRate, prepayment, freq]);
+  }, [remaining, oneTime, emi, annualRate, prepayment, freq, periodsPerYear]);
     
   const payoffPeriods = scheduleData.length;
   const totalInterest = scheduleData.reduce((sum, r) => sum + r.interest, 0).toFixed(2);
@@ -136,6 +145,26 @@ export default function LoanCalculator() {
     link.href = URL.createObjectURL(blob);
     link.download = 'amortization.csv';
     link.click();
+  };
+
+  // Convert payment periods to user-friendly terms
+  const getPayoffTimeText = () => {
+    if (payoffPeriods === 0) return "0";
+    
+    switch (freq) {
+      case 'weekly':
+        return `${payoffPeriods} weeks (${(payoffPeriods / 52).toFixed(1)} years)`;
+      case 'biweekly':
+        return `${payoffPeriods} bi-weekly periods (${(payoffPeriods / 26).toFixed(1)} years)`;
+      case 'monthly':
+        return `${payoffPeriods} months (${(payoffPeriods / 12).toFixed(1)} years)`;
+      case '6-months':
+        return `${payoffPeriods} 6-month periods (${(payoffPeriods / 2).toFixed(1)} years)`;
+      case 'yearly':
+        return `${payoffPeriods} years`;
+      default:
+        return fmtNum(payoffPeriods);
+    }
   };
 
   return (
@@ -334,7 +363,7 @@ export default function LoanCalculator() {
 
           {/* Summary */}
           <div className={`mt-6 p-4 rounded-lg transition-colors ${darkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
-            <p>Periods to payoff (Months): <span className="font-semibold">{fmtNum(payoffPeriods)}</span></p>
+            <p>Payoff time: <span className="font-semibold">{getPayoffTimeText()}</span></p>
             <p>Total interest paid: <span className="font-semibold">{fmt(totalInterest)}</span></p>
           </div>
 
@@ -345,7 +374,7 @@ export default function LoanCalculator() {
                 <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? "#555" : "#ccc"} />
                 <XAxis 
                   dataKey="period" 
-                  label={{ value: 'Period (months)', position: 'insideBottom', offset: -5 }} 
+                  label={{ value: `Period (${freq})`, position: 'insideBottom', offset: -5 }} 
                   stroke={darkMode ? "#aaa" : "#666"}
                 />
                 <YAxis 
@@ -389,7 +418,8 @@ export default function LoanCalculator() {
 
           {/* Table */}
           {showTable && (
-           <Table darkMode={darkMode} scheduleData={scheduleData} fmt={fmt} />
+                     <Table darkMode={darkMode} scheduleData={scheduleData} fmt={fmt} />
+
           )}
           <div className="flex items-center">
             <button 

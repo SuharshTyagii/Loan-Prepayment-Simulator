@@ -1,61 +1,64 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 import { Plus, Minus, Info, Sun, Moon, Star, Globe } from 'lucide-react';
-import { CustomTooltip} from './components/CustomTooltip'
+
+// Currency configuration with locale mapping
+const currencies = 
+[
+  { code: 'AED', name: 'UAE Dirham', flag: '🇦🇪', locale: 'ar-AE' },
+  { code: 'AUD', name: 'Australian Dollar', flag: '🇦🇺', locale: 'en-AU' },
+  { code: 'BRL', name: 'Brazilian Real', flag: '🇧🇷', locale: 'pt-BR' },
+  { code: 'CAD', name: 'Canadian Dollar', flag: '🇨🇦', locale: 'en-CA' },
+  { code: 'CHF', name: 'Swiss Franc', flag: '🇨🇭', locale: 'de-CH' },
+  { code: 'CNY', name: 'Chinese Yuan', flag: '🇨🇳', locale: 'zh-CN' },
+  { code: 'EGP', name: 'Egyptian Pound', flag: '🇪🇬', locale: 'ar-EG' },
+  { code: 'EUR', name: 'Euro', flag: '🇪🇺', locale: 'de-DE' },
+  { code: 'GBP', name: 'British Pound', flag: '🇬🇧', locale: 'en-GB' },
+  { code: 'HKD', name: 'Hong Kong Dollar', flag: '🇭🇰', locale: 'zh-HK' },
+  { code: 'IDR', name: 'Indonesian Rupiah', flag: '🇮🇩', locale: 'id-ID' },
+  { code: 'INR', name: 'Indian Rupee', flag: '🇮🇳', locale: 'en-IN' },
+  { code: 'JPY', name: 'Japanese Yen', flag: '🇯🇵', locale: 'ja-JP' },
+  { code: 'KRW', name: 'South Korean Won', flag: '🇰🇷', locale: 'ko-KR' },
+  { code: 'MXN', name: 'Mexican Peso', flag: '🇲🇽', locale: 'es-MX' },
+  { code: 'MYR', name: 'Malaysian Ringgit', flag: '🇲🇾', locale: 'ms-MY' },
+  { code: 'NOK', name: 'Norwegian Krone', flag: '🇳🇴', locale: 'nb-NO' },
+  { code: 'NZD', name: 'New Zealand Dollar', flag: '🇳🇿', locale: 'en-NZ' },
+  { code: 'PHP', name: 'Philippine Peso', flag: '🇵🇭', locale: 'fil-PH' },
+  { code: 'PKR', name: 'Pakistani Rupee', flag: '🇵🇰', locale: 'ur-PK' },
+  { code: 'RUB', name: 'Russian Ruble', flag: '🇷🇺', locale: 'ru-RU' },
+  { code: 'SAR', name: 'Saudi Riyal', flag: '🇸🇦', locale: 'ar-SA' },
+  { code: 'SEK', name: 'Swedish Krona', flag: '🇸🇪', locale: 'sv-SE' },
+  { code: 'SGD', name: 'Singapore Dollar', flag: '🇸🇬', locale: 'en-SG' },
+  { code: 'THB', name: 'Thai Baht', flag: '🇹🇭', locale: 'th-TH' },
+  { code: 'TRY', name: 'Turkish Lira', flag: '🇹🇷', locale: 'tr-TR' },
+  { code: 'USD', name: 'US Dollar', flag: '🇺🇸', locale: 'en-US' },
+  { code: 'VND', name: 'Vietnamese Dong', flag: '🇻🇳', locale: 'vi-VN' },
+  { code: 'ZAR', name: 'South African Rand', flag: '🇿🇦', locale: 'en-ZA' }
+]
 
 
-// Country code to currency mapping
-const countryToCurrency = {
-  'US': 'USD', 'CA': 'CAD', 'GB': 'GBP', 'AU': 'AUD', 'NZ': 'NZD', 
-  'IN': 'INR', 'JP': 'JPY', 'CN': 'CNY', 'HK': 'HKD', 'SG': 'SGD', 
-  'CH': 'CHF', 'KR': 'KRW', 'SE': 'SEK', 'NO': 'NOK', 'MX': 'MXN',
-  'BR': 'BRL', 'ZA': 'ZAR', 'RU': 'RUB', 'TR': 'TRY', 'ID': 'IDR',
-  'MY': 'MYR', 'TH': 'THB', 'PH': 'PHP', 'VN': 'VND', 'PK': 'PKR',
-  'AE': 'AED', 'SA': 'SAR', 'EG': 'EGP'
+// Custom Tooltip Component 
+const CustomTooltip = ({ children, content }) => {
+  const [isVisible, setIsVisible] = useState(false);
+  
+  return (
+    <div className="relative inline-block">
+      <div 
+        className="cursor-help"
+        onMouseEnter={() => setIsVisible(true)}
+        onMouseLeave={() => setIsVisible(false)}
+      >
+        {children}
+      </div>
+      {isVisible && (
+        <div className="absolute z-10 w-60 p-2 text-sm bg-black text-white rounded shadow-lg -translate-x-1/2 left-1/2 bottom-full mb-2">
+          {content}
+          <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-black rotate-45"></div>
+        </div>
+      )}
+    </div>
+  );
 };
-
-// Default to EUR for European countries not specifically listed
-const europeanCountries = [
-  'AT', 'BE', 'CY', 'EE', 'FI', 'FR', 'DE', 'GR', 'IE', 'IT',
-  'LV', 'LT', 'LU', 'MT', 'NL', 'PT', 'SK', 'SI', 'ES'
-];
-
-europeanCountries.forEach(country => {
-  countryToCurrency[country] = 'EUR';
-});
-
-// 30 common currencies with flag emojis
-const currencies = [
-  { code: 'INR', name: 'Indian Rupee', flag: '🇮🇳' },
-  { code: 'USD', name: 'US Dollar', flag: '🇺🇸' },
-  { code: 'EUR', name: 'Euro', flag: '🇪🇺' },
-  { code: 'GBP', name: 'British Pound', flag: '🇬🇧' },
-  { code: 'JPY', name: 'Japanese Yen', flag: '🇯🇵' },
-  { code: 'AUD', name: 'Australian Dollar', flag: '🇦🇺' },
-  { code: 'CAD', name: 'Canadian Dollar', flag: '🇨🇦' },
-  { code: 'CHF', name: 'Swiss Franc', flag: '🇨🇭' },
-  { code: 'CNY', name: 'Chinese Yuan', flag: '🇨🇳' },
-  { code: 'HKD', name: 'Hong Kong Dollar', flag: '🇭🇰' },
-  { code: 'SGD', name: 'Singapore Dollar', flag: '🇸🇬' },
-  { code: 'NZD', name: 'New Zealand Dollar', flag: '🇳🇿' },
-  { code: 'KRW', name: 'South Korean Won', flag: '🇰🇷' },
-  { code: 'SEK', name: 'Swedish Krona', flag: '🇸🇪' },
-  { code: 'NOK', name: 'Norwegian Krone', flag: '🇳🇴' },
-  { code: 'MXN', name: 'Mexican Peso', flag: '🇲🇽' },
-  { code: 'BRL', name: 'Brazilian Real', flag: '🇧🇷' },
-  { code: 'ZAR', name: 'South African Rand', flag: '🇿🇦' },
-  { code: 'RUB', name: 'Russian Ruble', flag: '🇷🇺' },
-  { code: 'TRY', name: 'Turkish Lira', flag: '🇹🇷' },
-  { code: 'IDR', name: 'Indonesian Rupiah', flag: '🇮🇩' },
-  { code: 'MYR', name: 'Malaysian Ringgit', flag: '🇲🇾' },
-  { code: 'THB', name: 'Thai Baht', flag: '🇹🇭' },
-  { code: 'PHP', name: 'Philippine Peso', flag: '🇵🇭' },
-  { code: 'VND', name: 'Vietnamese Dong', flag: '🇻🇳' },
-  { code: 'PKR', name: 'Pakistani Rupee', flag: '🇵🇰' },
-  { code: 'AED', name: 'UAE Dirham', flag: '🇦🇪' },
-  { code: 'SAR', name: 'Saudi Riyal', flag: '🇸🇦' },
-  { code: 'EGP', name: 'Egyptian Pound', flag: '🇪🇬' }
-];
 
 function useLocalStorage(key, defaultValue) {
   const [value, setValue] = useState(() => {
@@ -66,12 +69,13 @@ function useLocalStorage(key, defaultValue) {
       return defaultValue;
     }
   });
+  
   useEffect(() => {
     try { localStorage.setItem(key, JSON.stringify(value)); } catch {};
   }, [key, value]);
+  
   return [value, setValue];
 }
-
 
 export default function LoanCalculator() {
   const [original, setOriginal] = useLocalStorage('original', 2945000);
@@ -110,49 +114,70 @@ export default function LoanCalculator() {
     }
   }, [darkMode]);
   
-
   // Payment frequency mapping
   const freqMap = { weekly: 52, biweekly: 26, monthly: 12, '6-months': 2, yearly: 1 };
   const periodsPerYear = freqMap[freq];
 
-const periodCap = 500;
+  // Get current currency locale
+  const currencyInfo = useMemo(() => {
+    return currencies.find(c => c.code === currency) || { code: currency, locale: 'en-US' };
+  }, [currency]);
 
-const scheduleData = useMemo(() => {
-  let balance = Math.max(0, remaining - oneTime);
-  const ratePerPeriod = annualRate / 100 / periodsPerYear;
-  const data = [];
-  let period = 0;
-  let cumInterest = 0;
-  const paymentBase = emi * (periodsPerYear / 12);
+  const periodCap = 500;
 
-  if (emi < (balance * ratePerPeriod)) {
-  console.warn('EMI is too low to cover the interest!');
-  }
-  
-  while (balance > 0 && period < periodCap) {
-    period++;
-    const interest = balance * ratePerPeriod;
-    let payment = paymentBase + prepayment;
-    if (payment > balance + interest) payment = balance + interest;
-    const principalPaid = payment - interest;
-    balance -= principalPaid;
-    cumInterest += interest;
-    data.push({
-      period,
-      interest: +interest.toFixed(2),
-      cumInterest: +cumInterest.toFixed(2),
-      balance: +Math.max(0, balance).toFixed(2)
-    });
-    if (balance <= 0) break;
-  }
-  return data;
-}, [remaining, oneTime, emi, annualRate, prepayment, freq]);
-  
+  const scheduleData = useMemo(() => {
+    let balance = Math.max(0, remaining - oneTime);
+    const ratePerPeriod = annualRate / 100 / periodsPerYear;
+    const data = [];
+    let period = 0;
+    let cumInterest = 0;
+    const paymentBase = emi * (periodsPerYear / 12);
+
+    if (emi < (balance * ratePerPeriod)) {
+      console.warn('EMI is too low to cover the interest!');
+    }
+    
+    while (balance > 0 && period < periodCap) {
+      period++;
+      const interest = balance * ratePerPeriod;
+      let payment = paymentBase + prepayment;
+      if (payment > balance + interest) payment = balance + interest;
+      const principalPaid = payment - interest;
+      balance -= principalPaid;
+      cumInterest += interest;
+      data.push({
+        period,
+        interest: +interest.toFixed(2),
+        cumInterest: +cumInterest.toFixed(2),
+        balance: +Math.max(0, balance).toFixed(2)
+      });
+      if (balance <= 0) break;
+    }
+    return data;
+  }, [remaining, oneTime, emi, annualRate, prepayment, freq]);
+    
   const payoffPeriods = scheduleData.length;
   const totalInterest = scheduleData.reduce((sum, r) => sum + r.interest, 0).toFixed(2);
 
-  // Formatting helper
-  const fmt = val => new Intl.NumberFormat('en-IN', { style: 'currency', currency }).format(val);
+  // Enhanced formatting helper with locale support
+  const fmt = val => {
+    const options = { 
+      style: 'currency', 
+      currency: currency,
+      maximumFractionDigits: currency === 'JPY' || currency === 'KRW' || currency === 'VND' ? 0 : 2
+    };
+    
+    return new Intl.NumberFormat(currencyInfo.locale, options).format(val);
+  };
+
+  // Format numbers without currency symbol
+  const fmtNum = val => {
+    const options = { 
+      maximumFractionDigits: 2
+    };
+    
+    return new Intl.NumberFormat(currencyInfo.locale, options).format(val);
+  };
 
   // Export CSV
   const exportCSV = () => {
@@ -188,8 +213,16 @@ const scheduleData = useMemo(() => {
                 </select>
                 <button 
                   onClick={() => {
-                    setLocationDetected(false);
-                    setIsDetectingLocation(false);
+                    setIsDetectingLocation(true);
+                    // Simulate geolocation detection
+                    setTimeout(() => {
+                      // In a real implementation, you'd use the browser's geolocation API
+                      // or a service like ipinfo.io to get the user's country
+                      setIsDetectingLocation(false);
+                      setLocationDetected(true);
+                      // For demo, we'll just set USD - in real app you'd detect locale
+                      setCurrency('USD');
+                    }, 1000);
                   }}
                   disabled={isDetectingLocation}
                   className={`ml-1 p-2 rounded-lg transition-colors ${
@@ -293,7 +326,7 @@ const scheduleData = useMemo(() => {
             {/* Interest Rate */}
             <div>
               <label className="block font-medium mb-1 flex items-center">
-                Interest Rate: {annualRate}% p.a. 
+                Interest Rate: {fmtNum(annualRate)}% p.a. 
                 <CustomTooltip content="Annual interest rate applied to your loan">
                   <Info className={`ml-1 w-4 h-4 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} />
                 </CustomTooltip>
@@ -351,12 +384,11 @@ const scheduleData = useMemo(() => {
               </div>
               <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">{fmt(prepayment)} every {freq}</div>
             </div>
-
           </div>
 
           {/* Summary */}
           <div className={`mt-6 p-4 rounded-lg transition-colors ${darkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
-            <p>Periods to payoff (Months): <span className="font-semibold">{payoffPeriods}</span></p>
+            <p>Periods to payoff (Months): <span className="font-semibold">{fmtNum(payoffPeriods)}</span></p>
             <p>Total interest paid: <span className="font-semibold">{fmt(totalInterest)}</span></p>
           </div>
 
@@ -373,6 +405,13 @@ const scheduleData = useMemo(() => {
                 <YAxis 
                   label={{ value: `Balance (${currency})`, angle: -90, position: 'insideLeft' }} 
                   stroke={darkMode ? "#aaa" : "#666"}
+                  tickFormatter={val => {
+                    // Short format for chart labels
+                    const absVal = Math.abs(val);
+                    if (absVal >= 1000000) return (val / 1000000).toFixed(1) + 'M';
+                    if (absVal >= 1000) return (val / 1000).toFixed(0) + 'K';
+                    return val;
+                  }}
                 />
                 <RechartsTooltip 
                   formatter={val => fmt(val)} 
@@ -426,14 +465,14 @@ const scheduleData = useMemo(() => {
               </table>
             </div>
           )}
-           <div className="flex items-center">
-              <button 
-                onClick={exportCSV} 
-                className="w-full px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-              >
-                Export Table to CSV
-              </button>
-            </div>
+          <div className="flex items-center">
+            <button 
+              onClick={exportCSV} 
+              className="w-full px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+            >
+              Export Table to CSV
+            </button>
+          </div>
         </div>
 
         {/* Footer */}

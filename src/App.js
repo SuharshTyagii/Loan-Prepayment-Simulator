@@ -24,7 +24,7 @@ function useLocalStorage(key, defaultValue) {
 }
 
 export default function LoanCalculator() {
-  const [original, setOriginal] = useLocalStorage('original', 2945000);
+  const [original, setOriginal] = useLocalStorage('original', 3200000);
   const [remaining, setRemaining] = useLocalStorage('remaining', 2945000);
   const [emi, setEmi] = useLocalStorage('emi', 33600);
   const [annualRate, setAnnualRate] = useLocalStorage('annualRate', 8.2);
@@ -79,13 +79,11 @@ export default function LoanCalculator() {
     let cumInterest = 0;
     
     // Fix: Calculate monthly payment equivalent for different frequencies
-const paymentBase = emi * 12 / periodsPerYear;
+    const paymentBase = emi * 12 / periodsPerYear;
 
     
     // Calculate recurring prepayment for the current frequency
-const prepaymentPerPeriod = prepayment * 12 / periodsPerYear;
-
-
+    const prepaymentPerPeriod = prepayment * 12 / periodsPerYear;
 
     if (paymentBase < (balance * ratePerPeriod)) {
       console.warn('EMI is too low to cover the interest!');
@@ -170,6 +168,24 @@ const prepaymentPerPeriod = prepayment * 12 / periodsPerYear;
     }
   };
 
+  // Fix for numeric inputs to properly handle and avoid leading zeros
+  const handleNumericInput = (value, setter, min = 0, max = Infinity) => {
+    // If input is empty, set to 0
+    if (value === '') {
+      setter(0);
+      return;
+    }
+
+    // Parse the value properly
+    const parsed = parseFloat(value);
+    
+    // Only update if it's a valid number
+    if (!isNaN(parsed)) {
+      // Apply min/max constraints
+      setter(Math.max(min, Math.min(max, parsed)));
+    }
+  };
+
   return (
     <div className={`min-h-screen transition-colors duration-300 ${darkMode ? 'bg-gray-900 text-gray-100' : 'bg-gray-50 text-gray-900'}`}>
       <div className="mx-auto max-w-4xl px-4 py-8 w-full">
@@ -221,8 +237,8 @@ const prepaymentPerPeriod = prepayment * 12 / periodsPerYear;
               <input 
                 type="number" 
                 className={`w-full p-3 border rounded-lg transition-colors ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'}`} 
-                value={original} 
-                onChange={e => setOriginal(+e.target.value)} 
+                value={original || ''} 
+                onChange={e => handleNumericInput(e.target.value, setOriginal)} 
               />
               <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">{fmt(original)}</div>
             </div>
@@ -238,8 +254,8 @@ const prepaymentPerPeriod = prepayment * 12 / periodsPerYear;
               <input 
                 type="number" 
                 className={`w-full p-3 border rounded-lg transition-colors ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'}`} 
-                value={remaining} 
-                onChange={e => setRemaining(+e.target.value)} 
+                value={remaining || ''} 
+                onChange={e => handleNumericInput(e.target.value, setRemaining)} 
               />
               <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">{fmt(remaining)}</div>
             </div>
@@ -255,8 +271,8 @@ const prepaymentPerPeriod = prepayment * 12 / periodsPerYear;
               <input 
                 type="number" 
                 className={`w-full p-3 border rounded-lg transition-colors ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'}`} 
-                value={oneTime} 
-                onChange={e => setOneTime(Math.min(+e.target.value, remaining))} 
+                value={oneTime || ''} 
+                onChange={e => handleNumericInput(e.target.value, setOneTime, 0, remaining)} 
               />
               <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">Will reduce balance by {fmt(Math.min(oneTime, remaining))}</div>
             </div>
@@ -272,8 +288,8 @@ const prepaymentPerPeriod = prepayment * 12 / periodsPerYear;
               <input 
                 type="number" 
                 className={`w-full p-3 border rounded-lg transition-colors ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'}`} 
-                value={emi} 
-                onChange={e => setEmi(+e.target.value)} 
+                value={emi || ''} 
+                onChange={e => handleNumericInput(e.target.value, setEmi)} 
               />
               <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">{fmt(emi)}</div>
             </div>
@@ -316,8 +332,8 @@ const prepaymentPerPeriod = prepayment * 12 / periodsPerYear;
                   type="number" 
                   step="1000" 
                   className={`w-full text-center p-3 border-t border-b transition-colors ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'}`} 
-                  value={prepayment} 
-                  onChange={e => setPrepayment(Math.max(0, Math.min(remaining, +e.target.value)))} 
+                  value={prepayment || ''} 
+                  onChange={e => handleNumericInput(e.target.value, setPrepayment, 0, remaining)} 
                 />
                 <button 
                   onClick={() => setPrepayment(p => Math.min(remaining, p + 2000))} 
@@ -398,8 +414,7 @@ const prepaymentPerPeriod = prepayment * 12 / periodsPerYear;
 
           {/* Table */}
           {showTable && (
-                     <Table darkMode={darkMode} scheduleData={scheduleData} fmt={fmt} />
-
+            <Table darkMode={darkMode} scheduleData={scheduleData} fmt={fmt} />
           )}
           <div className="flex items-center">
             <button 

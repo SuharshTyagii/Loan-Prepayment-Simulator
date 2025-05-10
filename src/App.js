@@ -79,10 +79,13 @@ export default function LoanCalculator() {
     let cumInterest = 0;
     
     // Fix: Calculate monthly payment equivalent for different frequencies
-    const paymentBase = emi * periodsPerYear / 12;
+const paymentBase = emi * 12 / periodsPerYear;
+
     
     // Calculate recurring prepayment for the current frequency
-    const prepaymentPerPeriod = prepayment;
+const prepaymentPerPeriod = prepayment * 12 / periodsPerYear;
+
+
 
     if (paymentBase < (balance * ratePerPeriod)) {
       console.warn('EMI is too low to cover the interest!');
@@ -175,9 +178,10 @@ export default function LoanCalculator() {
           <a href="https://github.com/SuharshTyagii/Loan-Prepayment-Simulator/" target="_blank" rel="noopener" className="flex items-center text-yellow-500 hover:text-yellow-400">
             <Star className="w-5 h-5 mr-1" /> Star on GitHub
           </a>
-          <div className="flex flex-wrap items-center gap-4">
+          <div className="flex flex-wrap items-end gap-4">
             <div className="w-full sm:w-auto relative">
-              <label className="block text-sm mb-1">Currency</label>
+              <div>
+                 <label className="block text-sm mb-1">Currency</label>
               <div className="flex">
                 <select 
                   className={`p-2 border rounded-lg w-full sm:w-auto ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-300'}`} 
@@ -186,40 +190,16 @@ export default function LoanCalculator() {
                 >
                   {currencies.map(c => <option key={c.code} value={c.code}>{c.flag} {c.code}</option>)}
                 </select>
-                <button 
-                  onClick={() => {
-                    setIsDetectingLocation(true);
-                    // Simulate geolocation detection
-                    setTimeout(() => {
-                      // In a real implementation, you'd use the browser's geolocation API
-                      // or a service like ipinfo.io to get the user's country
-                      setIsDetectingLocation(false);
-                      setLocationDetected(true);
-                      // For demo, we'll just set USD - in real app you'd detect locale
-                      setCurrency('USD');
-                    }, 1000);
-                  }}
-                  disabled={isDetectingLocation}
-                  className={`ml-1 p-2 rounded-lg transition-colors ${
-                    darkMode ? 'bg-blue-800 hover:bg-blue-700' : 'bg-blue-100 hover:bg-blue-200'
-                  } ${isDetectingLocation ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  title="Auto-detect currency based on your location"
-                >
-                  <Globe className="w-4 h-4" />
-                </button>
+               
               </div>
-              {isDetectingLocation && (
-                <div className={`text-xs mt-1 ${darkMode ? 'text-blue-400' : 'text-blue-600'}`}>
-                  Detecting location...
-                </div>
-              )}
             </div>
+             </div>
             <button 
               onClick={() => setDarkMode(!darkMode)} 
               className={`p-2 rounded-lg transition-colors ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-200 hover:bg-gray-300'}`}
               aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
             >
-              {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+              {darkMode ? <Sun className="w-6 h-6" /> : <Moon className="w-6 h-6" />}
             </button>
           </div>
         </div>

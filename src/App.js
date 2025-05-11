@@ -304,8 +304,14 @@ export default function LoanCalculator() {
           </div>
 
           {/* Tenure Slider */}
-          <div className="mt-6">  
-            <label className="block font-medium mb-1">Loan Tenure (years)</label>  
+          {/* <div className="mt-6">  
+            <div className="flex items-center">
+                          <label className="block font-medium mb-1">Loan Tenure (years)</label> 
+           <CustomTooltip content="Adjusting this will auto-calculate your monthly EMI">
+                  <Info className={`ml-1 w-4 h-4 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} />
+                </CustomTooltip>
+
+                  </div>
             <div className="flex items-center gap-4">  
               <input
                 type="range" min="0" max="50" step="1"
@@ -317,7 +323,7 @@ export default function LoanCalculator() {
                 }} className="flex-1" />  
               <div className="w-12 text-center">{tenure}</div>  
             </div>  
-          </div>
+          </div> */}
 
           {/* Summary */}
           <div className={`mt-6 p-4 rounded-lg transition-colors ${darkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>  

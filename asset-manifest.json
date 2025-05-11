@@ -1,15 +1,15 @@
 {
   "files": {
     "main.css": "/Loan-Prepayment-Simulator/static/css/main.b66afc3d.css",
-    "main.js": "/Loan-Prepayment-Simulator/static/js/main.0642e2c3.js",
+    "main.js": "/Loan-Prepayment-Simulator/static/js/main.776e99bc.js",
     "static/js/453.7ea2f95b.chunk.js": "/Loan-Prepayment-Simulator/static/js/453.7ea2f95b.chunk.js",
     "index.html": "/Loan-Prepayment-Simulator/index.html",
     "main.b66afc3d.css.map": "/Loan-Prepayment-Simulator/static/css/main.b66afc3d.css.map",
-    "main.0642e2c3.js.map": "/Loan-Prepayment-Simulator/static/js/main.0642e2c3.js.map",
+    "main.776e99bc.js.map": "/Loan-Prepayment-Simulator/static/js/main.776e99bc.js.map",
     "453.7ea2f95b.chunk.js.map": "/Loan-Prepayment-Simulator/static/js/453.7ea2f95b.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.b66afc3d.css",
-    "static/js/main.0642e2c3.js"
+    "static/js/main.776e99bc.js"
   ]
 }

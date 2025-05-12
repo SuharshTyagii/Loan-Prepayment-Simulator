@@ -125,7 +125,7 @@ export default function LoanCalculator() {
     <div className={`min-h-screen transition-colors duration-300 ${darkMode ? 'bg-gray-900 text-gray-100' : 'bg-gray-50 text-gray-900'}`}>
       <div className="mx-auto max-w-4xl px-4 py-8 w-full">
         <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
-          <a href="https://github.com/SuharshTyagii/Loan-Prepayment-Simulater/" target="_blank" rel="noopener" className="flex items-center text-yellow-500 hover:text-yellow-400"><Star className="w-5 h-5 mr-1" /> Star on GitHub</a>
+          <a href="https://github.com/SuharshTyagii/Loan-Prepayment-Simulator/" target="_blank" rel="noopener" className="flex items-center text-yellow-500 hover:text-yellow-400"><Star className="w-5 h-5 mr-1" /> Star on GitHub</a>
           <div className="flex flex-wrap items-end gap-4">
             <div className="w-full sm:w-auto relative">
               <label className="block text-sm mb-1">Currency</label>
